@@ -4,10 +4,18 @@ from backend.app.schemas.trip import TripRequest
 from backend.app.services.groq import TokenCallback, generate_trip_plan
 
 
+async def draft_trip(
+    trip: TripRequest,
+    context: TravelContext,
+    on_token: TokenCallback | None = None,
+) -> TripPlan:
+    return await generate_trip_plan(trip, context=context, on_token=on_token)
+
+
 async def plan_trip(
     trip: TripRequest,
     context: TravelContext,
     on_token: TokenCallback | None = None,
 ) -> TripPlan:
-    plan = await generate_trip_plan(trip, context=context, on_token=on_token)
+    plan = await draft_trip(trip, context=context, on_token=on_token)
     return validate_plan(trip, plan)

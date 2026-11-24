@@ -5,6 +5,10 @@ It gathers optional live destination context, asks the Groq model configured in
 your environment for a structured itinerary, saves completed trips locally, and
 streams follow-up answers grounded in the saved plan.
 
+Planning is orchestrated as a multi-agent LangGraph workflow. LangChain prompt
+templates structure the planner's messages, while specialist research,
+planning, budget-review, and validation agents work over shared trip state.
+
 ## Features
 
 - Calculates trip length from the required inclusive start and end dates.
@@ -23,6 +27,8 @@ streams follow-up answers grounded in the saved plan.
   sidebar.
 - Keeps API keys in the Python process; they are never sent to the browser.
 - Provides an optional FastAPI JSON/SSE API alongside the Streamlit app.
+- Uses LangGraph to run specialist trip-planning agents over shared workflow
+  state, with LangChain prompt templates for planner requests.
 
 Research and prices are suggestions, not guarantees. Verify important details
 with official providers before booking or travel.
@@ -158,7 +164,7 @@ backend/app/
   agents/              Research, planning, budget, and validation
   api/                 Optional FastAPI JSON/SSE routes
   database/            SQLite persistence
-  graph/               Research and planning workflow
+  graph/               LangGraph multi-agent workflow and shared state
   schemas/             Validated requests and responses
   services/            Groq, travel context, and trip services
   tools/               External travel data integrations

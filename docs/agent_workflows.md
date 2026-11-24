@@ -1,18 +1,20 @@
 # Agent workflow
 
-The current planner keeps the interface simple while using a small backend
-workflow:
+The Streamlit app and FastAPI endpoints use the same LangGraph workflow.
+Specialist agents share a typed trip state and run in this order:
 
-- **Supervisor:** verifies that Groq is configured and starts the workflow.
+- **Supervisor:** checks the request and verifies that Groq is configured.
 - **Researcher:** resolves the destination, then gathers forecast, nearby
   places/accommodation, and reference facts. It also estimates a driving route
-  when the user supplies an origin.
-- **Planner:** requests a personalized JSON itinerary from the configured Groq
-  model using trip details and available research.
-- **Validator:** checks that itinerary days are sequential and warns when the
-  model's estimated total exceeds the requested budget or is below the listed
-  activity subtotal.
+  when the user supplies an origin. Independent research providers run
+  concurrently inside this agent.
+- **Planner:** uses a LangChain chat prompt template to request a personalized
+  JSON itinerary from the configured Groq model. Planner tokens can stream to
+  the UI/API while the graph runs.
+- **Budget reviewer:** checks the estimate and unpriced categories against the
+  requested budget, adding explicit warnings to the plan.
+- **Validator:** verifies that itinerary days are sequential before the graph
+  returns a plan.
 
-The independent research providers run concurrently. If one is unavailable,
-the itinerary can still be generated and the unavailable source is named in
-the returned `travel_context.warnings`.
+If a research provider is unavailable, the itinerary can still be generated and
+the unavailable source is named in the returned `travel_context.warnings`.

@@ -8,7 +8,6 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
-from backend.app.agents.planner import plan_trip
 from backend.app.database.repositories import get_trip, save_trip
 from backend.app.schemas.followup import FollowUpRequest
 from backend.app.schemas.itinerary import TripPlan
@@ -18,7 +17,6 @@ from backend.app.services.groq import (
     stream_trip_followup,
 )
 from backend.app.services.memory_service import list_recent_trips
-from backend.app.services.travel_context import collect_travel_context
 from backend.app.services.trip_service import generate_trip_plan
 from backend.app.utils.exceptions import DatabaseUnavailable
 
@@ -62,11 +60,10 @@ async def create_trip_plan_stream(trip: TripRequest) -> StreamingResponse:
 
         async def generate() -> None:
             try:
-                context = await collect_travel_context(trip)
                 await queue.put(
-                    ("progress", {"message": "Writing your day-by-day itinerary…"})
+                    ("progress", {"message": "Planning your trip with specialist agents…"})
                 )
-                plan = await plan_trip(trip, context, on_token=on_token)
+                plan = await generate_trip_plan(trip, on_token=on_token)
                 await run_in_threadpool(save_trip, trip, plan)
                 await queue.put(("complete", plan.model_dump(mode="json")))
             except GroqServiceError as exc:

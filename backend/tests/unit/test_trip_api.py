@@ -8,7 +8,7 @@ from backend.app.api.routes import trips as trip_routes
 from backend.app.api.routes import weather as weather_routes
 from backend.app.main import app
 from backend.app.schemas.context import Coordinates, WeatherDay
-from backend.app.schemas.itinerary import TravelContext, TripPlan
+from backend.app.schemas.itinerary import TripPlan
 from backend.app.schemas.trip import TripRequest
 from backend.app.services.groq import GroqServiceError
 
@@ -267,10 +267,7 @@ def test_streamed_plan_returns_itinerary_and_persists_it(monkeypatch, tmp_path) 
         f"sqlite+aiosqlite:///{tmp_path / 'streamed-trips.db'}",
     )
 
-    async def fake_context(_trip):
-        return TravelContext()
-
-    async def fake_plan(trip, _context, on_token):
+    async def fake_plan(trip, on_token):
         await on_token('{"destination":"Kyoto"}')
         return TripPlan(
             destination="Kyoto",
@@ -294,8 +291,7 @@ def test_streamed_plan_returns_itinerary_and_persists_it(monkeypatch, tmp_path) 
             estimated_total_cost=10,
         )
 
-    monkeypatch.setattr(trip_routes, "collect_travel_context", fake_context)
-    monkeypatch.setattr(trip_routes, "plan_trip", fake_plan)
+    monkeypatch.setattr(trip_routes, "generate_trip_plan", fake_plan)
     response = client.post(
         "/api/trips/plan/stream",
         json={"destination": "Kyoto", "trip_days": 1},

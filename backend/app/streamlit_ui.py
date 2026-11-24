@@ -11,7 +11,6 @@ from urllib.parse import urlsplit
 import streamlit as st
 from pydantic import ValidationError
 
-from backend.app.agents.planner import plan_trip
 from backend.app.config import get_settings
 from backend.app.database.repositories import save_trip
 from backend.app.schemas.followup import FollowUpMessage, FollowUpRequest
@@ -23,7 +22,7 @@ from backend.app.services.memory_service import (
     list_recent_trips,
     load_trip,
 )
-from backend.app.services.travel_context import collect_travel_context
+from backend.app.services.trip_service import generate_trip_plan
 from backend.app.utils.exceptions import DatabaseUnavailable
 
 logger = logging.getLogger(__name__)
@@ -52,14 +51,21 @@ PACE_OPTIONS = {
 
 def _create_plan(trip: TripRequest, progress, progress_bar) -> TripPlan:
     async def create() -> TripPlan:
-        context = await collect_travel_context(trip)
-        progress.write("Research gathered. Streaming your itinerary from Groq…")
-        progress_bar.progress(30, text="Research complete · writing your itinerary")
+        progress.write("Researching your destination and preparing your itinerary…")
+        progress_bar.progress(5, text="Starting the trip-planning agents")
         received_characters = 0
         last_reported_characters = 0
+        generation_started = False
 
         async def report_token(token: str) -> None:
-            nonlocal received_characters, last_reported_characters
+            nonlocal received_characters, last_reported_characters, generation_started
+            if not generation_started:
+                progress.write("Research gathered. Streaming your itinerary from Groq…")
+                progress_bar.progress(
+                    30,
+                    text="Research complete · writing your itinerary",
+                )
+                generation_started = True
             received_characters += len(token)
             if received_characters - last_reported_characters >= 300:
                 progress.write(
@@ -72,7 +78,7 @@ def _create_plan(trip: TripRequest, progress, progress_bar) -> TripPlan:
                 )
                 last_reported_characters = received_characters
 
-        plan = await plan_trip(trip, context, on_token=report_token)
+        plan = await generate_trip_plan(trip, on_token=report_token)
         await asyncio.to_thread(save_trip, trip, plan)
         return plan
 

@@ -238,10 +238,7 @@ def test_streamlit_plan_uses_research_stream_and_saves(
         def progress(self, value: int, text: str) -> None:
             progress_values.append((value, text))
 
-    async def fake_context(_trip):
-        return TravelContext()
-
-    async def fake_plan(_trip, _context, on_token):
+    async def fake_plan(_trip, on_token):
         await on_token("x" * 300)
         return _sample_plan()
 
@@ -249,8 +246,7 @@ def test_streamlit_plan_uses_research_stream_and_saves(
         plan.trip_id = "saved-trip"
         saved.append(plan)
 
-    monkeypatch.setattr("backend.app.streamlit_ui.collect_travel_context", fake_context)
-    monkeypatch.setattr("backend.app.streamlit_ui.plan_trip", fake_plan)
+    monkeypatch.setattr("backend.app.streamlit_ui.generate_trip_plan", fake_plan)
     monkeypatch.setattr("backend.app.streamlit_ui.save_trip", fake_save)
 
     plan = _create_plan(
